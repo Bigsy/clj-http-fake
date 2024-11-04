@@ -11,7 +11,9 @@
                  [ring/ring-codec "1.2.0"]]
   :aliases {"test-2.x" ["with-profile" "latest-2.x,1.7:latest-2.x,1.8:latest-2.x,1.9:latest-2.x,1.10:latest-2.x,1.11" "test"]
             "test-3.x" ["with-profile" "latest-3.x,1.7:latest-3.x,1.8:latest-3.x,1.9:latest-3.x,1.10:latest-3.x,1.11" "test"]}
-  :profiles {:1.11 {:dependencies [[org.clojure/clojure "1.11.1"]]}
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.11.1"]
+                                  [hashp "0.2.2"]]}
+             :1.11 {:dependencies [[org.clojure/clojure "1.11.1"]]}
              :1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
              :1.8 {:dependencies [[org.clojure/clojure "1.8.0"]]}
