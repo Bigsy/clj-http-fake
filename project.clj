@@ -1,4 +1,4 @@
-(defproject org.clojars.bigsy/clj-http-fake "1.0.5"
+(defproject org.clojars.bigsy/clj-http-fake "1.0.6"
   :description "Helper for faking clj-http requests in testing, like Ruby's fakeweb."
   :url "https://github.com/Bigsy/clj-http-fake"
   :license {:name "MIT License"

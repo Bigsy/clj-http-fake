@@ -67,40 +67,53 @@ a multi-threaded environment.
 
 ### Call Count Validation
 
-You can now specify and validate the number of times a route should be called using the `:times` option:
+You can specify and validate the number of times a route should be called using the `:times` option. There are two supported formats:
+
+#### Simple Format
+The `:times` option can be specified as a sibling of the HTTP methods:
 
 ```clojure
 (with-fake-routes
   {"http://api.example.com/data"
-   {:get {:handler (fn [_] {:status 200 :body "ok"})
-          :times 2}}}
+   {:get (fn [_] {:status 200 :body "ok"})
+    :times 2}}
   
   ;; This will pass - route is called exactly twice as expected
   (c/get "http://api.example.com/data")
   (c/get "http://api.example.com/data"))
 
-;; This will fail with "Expected route to be called 2 times but was called 1 times"
+;; Multiple methods with shared count
 (with-fake-routes
   {"http://api.example.com/data"
-   {:get {:handler (fn [_] {:status 200 :body "ok"})
-          :times 2}}}
-  (c/get "http://api.example.com/data"))
-
-;; This will fail with "Expected route to be called 1 times but was called 2 times"
-(with-fake-routes
-  {"http://api.example.com/data"
-   {:get {:handler (fn [_] {:status 200 :body "ok"})
-          :times 1}}}
+   {:get (fn [_] {:status 200 :body "ok"})
+    :post (fn [_] {:status 201 :body "created"})
+    :times 1}}
   (c/get "http://api.example.com/data")
-  (c/get "http://api.example.com/data"))
+  (c/post "http://api.example.com/data"))
 ```
 
+#### Per-Method Format
+For more granular control, `:times` can be a map specifying counts per HTTP method:
+
+```clojure
+(with-fake-routes
+  {"http://api.example.com/data"
+   {:get (fn [_] {:status 200 :body "ok"})
+    :post (fn [_] {:status 201 :body "created"})
+    :times {:get 2 :post 1}}}
+  
+  ;; This will pass - GET called twice, POST called once
+  (c/get "http://api.example.com/data")
+  (c/get "http://api.example.com/data")
+  (c/post "http://api.example.com/data"))
+```
 The `:times` option allows you to:
 - Verify a route is called exactly the expected number of times
 - Ensure endpoints aren't called more times than necessary
+- Specify different call counts for different HTTP methods
 
 If the actual number of calls doesn't match the expected count, an exception is thrown with a descriptive message. 
-If `:times` not supplied it acts as any number of times.
+If `:times` is not supplied, the route can be called any number of times.
 
 ## Development
 

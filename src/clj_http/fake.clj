@@ -136,12 +136,24 @@
              (matches (:address address) method request))))))
 
 (defn- process-handler [method address handler]
-  (if (map? handler)
-    (let [route-key (str address method)]
-      (when-let [times (:times handler)]
-        (swap! *expected-counts* assoc route-key times))
-      [method address {:handler (:handler handler)}])
-    [method address {:handler handler}]))
+  (let [route-key (str address method)]
+    (cond
+      ;; Handler is a function with times metadata
+      (and (fn? handler) (:times (meta handler)))
+      (do
+        (swap! *expected-counts* assoc route-key (:times (meta handler)))
+        [method address {:handler handler}])
+
+      ;; Handler is a map with :handler and :times
+      (and (map? handler) (:handler handler))
+      (do
+        (when-let [times (:times handler)]
+          (swap! *expected-counts* assoc route-key times))
+        [method address {:handler (:handler handler)}])
+
+      ;; Handler is a direct function
+      :else
+      [method address {:handler handler}])))
 
 (defn- flatten-routes [routes]
   (let [normalised-routes
@@ -150,12 +162,18 @@
            (if (map? handlers)
              (into accumulator 
                    (map (fn [[method handler]]
-                         (process-handler method address handler))
-                       handlers))
+                         (if (= method :times)
+                           nil
+                           (let [times (get-in handlers [:times method] (:times handlers))]
+                             (process-handler method address 
+                                            (if times
+                                              (with-meta handler {:times times})
+                                              handler)))))
+                       (dissoc handlers :times)))
              (into accumulator [[:any address {:handler handlers}]])))
          []
          routes)]
-    (map #(zipmap [:method :address :handler] %) normalised-routes)))
+    (remove nil? (map #(zipmap [:method :address :handler] %) normalised-routes))))
 
 (defn utf8-bytes
     "Returns the UTF-8 bytes corresponding to the given string."
