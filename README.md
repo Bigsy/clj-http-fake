@@ -1,7 +1,9 @@
-# clj-http-fake [![MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://www.tldrlegal.com/l/mit) [![Clojars Project](https://img.shields.io/clojars/v/clj-http-fake.svg)](https://clojars.org/clj-http-fake)
+# clj-http-fake 
+[![MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://www.tldrlegal.com/l/mit) 
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.bigsy/clj-http-fake.svg)](https://clojars.org/org.clojars.bigsy/clj-http-fake)
 
-Basically, [fakeweb](https://github.com/chrisk/fakeweb) in Clojure, for [clj-http](https://github.com/dakrone/clj-http).
-
+This is a fork of clj-http.fake, which is a library for stubbing out clj-http requests. This version has added
+functionality for counting the number of calls made to a particular url.
 ## Usage
 
 ```clojure
