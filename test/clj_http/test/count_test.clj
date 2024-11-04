@@ -56,7 +56,7 @@
         {"http://example.com/api1"
          {:get {:handler (fn [_] {:status 200 :body "ok1"})
                 :times 2}}
-         "http://example.com/api2"p
+         "http://example.com/api2"
          {:get {:handler (fn [_] {:status 200 :body "ok2"})
                 :times 2}}}
         (http/get "http://example.com/api1")
@@ -109,3 +109,10 @@
       (is false "Should have thrown an exception")
       (catch Exception e
         (is (= (.getMessage e) "Expected route to be called 0 times but was called 1 times"))))))
+
+(comment
+  (with-fake-routes
+    {"http://example.com"
+     {:get (fn [_] {:status 200 :body "ok"})
+      :times 1}}
+    (http/get "http://example.com")))
