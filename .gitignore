@@ -1,0 +1,15 @@
+pom.xml
+*jar
+/lib/
+/target/
+/classes/
+.lein-failures
+.lein-deps-sum
+.classpath
+.project
+.nrepl-port
+*.iml
+*.asc
+/.idea/
+.clj-kondo
+.lsp
