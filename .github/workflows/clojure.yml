@@ -1,0 +1,39 @@
+name: Clojure CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        test-command: ['test-2.x', 'test-3.x']
+
+    steps:
+    - uses: actions/checkout@v4.2.2
+    
+    - name: Setup Java
+      uses: actions/setup-java@v4.5.0
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+        
+    - name: Install Leiningen
+      uses: DeLaGuardo/setup-clojure@12.6
+      with:
+        lein: latest
+
+    - name: Cache Maven packages
+      uses: actions/cache@v4.1.2
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/project.clj') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Run tests
+      run: lein ${{ matrix.test-command }}
