@@ -4,6 +4,18 @@
         [clojure.test]
         :reload-all))
 
+(deftest times-mismatch-includes-route-info
+  (try
+    (with-fake-routes
+      {"http://example.com/test" {:get (with-meta
+                                         (fn [_] {:status 200 :headers {} :body "response"})
+                                         {:times 2})}}
+      (http/get "http://example.com/test"))
+    (is false "Should have thrown an exception")
+    (catch Exception e
+      (is (re-find #"Expected route 'http://example.com/test:get' to be called 2 times but was called 1 times"
+                   (.getMessage e))))))
+
 (deftest expected-call-count-test
   (testing "passes when route is called expected number of times"
     (with-fake-routes
@@ -22,7 +34,7 @@
         (http/get "http://example.com"))
       (is false "Should have thrown an exception")
       (catch Exception e
-        (is (= (.getMessage e) "Expected route to be called 2 times but was called 1 times")))))
+        (is (= (.getMessage e) "Expected route 'http://example.com:get' to be called 2 times but was called 1 times")))))
 
   (testing "fails when route is called more than expected times"
     (try
@@ -34,7 +46,7 @@
         (http/get "http://example.com"))
       (is false "Should have thrown an exception")
       (catch Exception e
-        (is (= (.getMessage e) "Expected route to be called 1 times but was called 2 times"))))))
+        (is (= (.getMessage e) "Expected route 'http://example.com:get' to be called 1 times but was called 2 times"))))))
 
 (deftest multiple-routes-with-times-test
   (testing "passes when multiple routes are called their expected number of times"
@@ -62,7 +74,7 @@
         (http/get "http://example.com/api2"))
       (is false "Should have thrown an exception")
       (catch Exception e
-        (is (= (.getMessage e) "Expected route to be called 2 times but was called 1 times"))))))
+        (is (= (.getMessage e) "Expected route 'http://example.com/api1:get' to be called 2 times but was called 1 times"))))))
 
 (deftest times-with-different-methods-test
   (testing "passes when route is called expected number of times with different methods"
@@ -86,7 +98,7 @@
         (http/post "http://example.com"))
       (is false "Should have thrown an exception")
       (catch Exception e
-        (is (= (.getMessage e) "Expected route to be called 2 times but was called 1 times"))))))
+        (is (= (.getMessage e) "Expected route 'http://example.com:post' to be called 2 times but was called 1 times"))))))
 
 (deftest times-edge-cases-test
   (testing "passes when route with :times 0 is never called"
@@ -105,7 +117,7 @@
         (http/get "http://example.com"))
       (is false "Should have thrown an exception")
       (catch Exception e
-        (is (= (.getMessage e) "Expected route to be called 0 times but was called 1 times"))))))
+        (is (= (.getMessage e) "Expected route 'http://example.com:get' to be called 0 times but was called 1 times"))))))
 
 (deftest shared-count-with-different-methods-test
   (testing "passes when multiple methods share a count and are called expected number of times"
@@ -128,7 +140,7 @@
         (http/get "http://example.com"))
       (is false "Should have thrown an exception")
       (catch Exception e
-        (is (= (.getMessage e) "Expected route to be called 1 times but was called 2 times"))))))
+        (is (= (.getMessage e) "Expected route 'http://example.com:get' to be called 1 times but was called 2 times"))))))
 
 (comment
   (with-fake-routes
