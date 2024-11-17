@@ -82,3 +82,92 @@
                  (fn [_] (deliver p2 :done)))
         [@p1 @p2]
         (is (= 2 (get @*call-counts* ["http://example.com" :get] 0)))))))
+
+(deftest test-query-params
+  (testing "Empty query params"
+    (with-fake-routes {#"http://example.com/api" {:status 200 :body "OK"}}
+      (let [p (promise)]
+        (http/get "http://example.com/api" {:query-params {}}
+                 (fn [{:keys [status body]}]
+                   (is (= 200 status))
+                   (is (= "OK" body))
+                   (deliver p :done)))
+        @p)))
+  
+  (testing "Query param order doesn't matter"
+    (with-fake-routes {"http://example.com/api?a=1&b=2" {:status 200 :body "OK"}}
+      (let [p1 (promise)
+            p2 (promise)]
+        (http/get "http://example.com/api" {:query-params {:a "1" :b "2"}}
+                 (fn [{:keys [body]}]
+                   (is (= "OK" body))
+                   (deliver p1 :done)))
+        (http/get "http://example.com/api" {:query-params {:b "2" :a "1"}}
+                 (fn [{:keys [body]}]
+                   (is (= "OK" body))
+                   (deliver p2 :done)))
+        [@p1 @p2])))
+  
+  (testing "Query params in map route spec"
+    (with-fake-routes {{:url "http://example.com/api"
+                       :query-params {:q "test"}} 
+                      {:status 200 :body "Found"}}
+      (let [p (promise)]
+        (http/get "http://example.com/api" {:query-params {:q "test"}}
+                 (fn [{:keys [body]}]
+                   (is (= "Found" body))
+                   (deliver p :done)))
+        @p))))
+
+(deftest test-url-matching-edge-cases
+  (testing "Default port handling"
+    (with-fake-routes {"http://example.com:80/api" {:status 200 :body "OK"}}
+      (let [p (promise)]
+        (http/get "http://example.com/api" {}
+                 (fn [{:keys [body]}]
+                   (is (= "OK" body))
+                   (deliver p :done)))
+        @p)))
+  
+  (testing "Trailing slashes"
+    (with-fake-routes {"http://example.com/api/" {:status 200 :body "OK"}}
+      (let [p (promise)]
+        (http/get "http://example.com/api" {}
+                 (fn [{:keys [body]}]
+                   (is (= "OK" body))
+                   (deliver p :done)))
+        @p)))
+  
+  (testing "Default scheme"
+    (with-fake-routes {"example.com" {:status 200 :body "OK"}}
+      (let [p (promise)]
+        (http/get "http://example.com" {}
+                 (fn [{:keys [body]}]
+                   (is (= "OK" body))
+                   (deliver p :done)))
+        @p))))
+
+(deftest test-route-matching-precedence
+  (testing "Uses first matching route"
+    (with-fake-routes {"http://example.com" {:status 200 :body "First"}
+                      "http://example.com/" {:status 200 :body "Second"}}
+      (let [p (promise)]
+        (http/get "http://example.com/" {}
+                 (fn [{:keys [body]}]
+                   (is (= "First" body))
+                   (deliver p :done)))
+        @p)))
+  
+  (testing "Any method matching"
+    (with-fake-routes {[:any "http://example.com"] {:status 200 :body "Any"}}
+      (let [p1 (promise)
+            p2 (promise)]
+        (http/get "http://example.com" {}
+                 (fn [{:keys [body]}]
+                   (is (= "Any" body))
+                   (deliver p1 :done)))
+        (http/post "http://example.com" {}
+                  (fn [{:keys [body]}]
+                    (is (= "Any" body))
+                    (deliver p2 :done)))
+        [@p1 @p2]))))
