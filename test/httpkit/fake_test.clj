@@ -5,7 +5,7 @@
 
 (deftest test-simple-get
   (testing "Basic GET request with string URL"
-    (with-fake-http {"http://example.com" {:status 200
+    (with-fake-routes {"http://example.com" {:status 200
                                           :headers {"Content-Type" "text/plain"}
                                           :body "Hello World"}}
       (let [p (promise)]
@@ -19,7 +19,7 @@
 
 (deftest test-pattern-matching
   (testing "Pattern matching for URLs"
-    (with-fake-http {#"http://example.com/\d+" {:status 200
+    (with-fake-routes {#"http://example.com/\d+" {:status 200
                                                :body "Numbered resource"}}
       (let [p (promise)]
         (http/get "http://example.com/123" {}
@@ -31,7 +31,7 @@
 
 (deftest test-method-specific-response
   (testing "Different responses for different HTTP methods"
-    (with-fake-http {[:post "http://example.com"] {:status 201
+    (with-fake-routes {[:post "http://example.com"] {:status 201
                                                   :body "Created"}
                      [:get "http://example.com"] {:status 200
                                                 :body "OK"}}
@@ -52,7 +52,7 @@
 (deftest test-isolation-mode
   (testing "Requests not matching routes throw exception in isolation mode"
     (is (thrown? Exception
-                 (with-fake-http-in-isolation {"http://example.com" {:status 200}}
+                 (with-fake-routes-in-isolation {"http://example.com" {:status 200}}
                    (let [p (promise)]
                      (http/get "http://other.com" {}
                              (fn [_] (deliver p :done)))
@@ -60,7 +60,7 @@
 
 (deftest test-dynamic-response
   (testing "Response generation using function"
-    (with-fake-http {"http://example.com" (fn [req]
+    (with-fake-routes {"http://example.com" (fn [req]
                                            {:status 200
                                             :body (str "Request method was: " 
                                                      (name (:method req)))})}
@@ -73,7 +73,7 @@
 
 (deftest test-request-recording
   (testing "Records the number of times routes are called"
-    (with-fake-http {"http://example.com" {:status 200}}
+    (with-fake-routes {"http://example.com" {:status 200}}
       (let [p1 (promise)
             p2 (promise)]
         (http/get "http://example.com" {}
