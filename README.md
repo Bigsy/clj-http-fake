@@ -2,9 +2,11 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://www.tldrlegal.com/l/mit) 
 [![Clojars Project](https://img.shields.io/clojars/v/org.clojars.bigsy/clj-http-fake.svg)](https://clojars.org/org.clojars.bigsy/clj-http-fake)
 
-This is a fork of clj-http.fake, which is a library for stubbing out clj-http requests. This version has added
-functionality for counting the number of calls made to a particular url.
+This is a library for stubbing out HTTP requests in Clojure. It supports both clj-http and http-kit clients with a consistent API.
+
 ## Usage
+
+### With clj-http
 
 ```clojure
 (ns myapp.test.core
@@ -12,46 +14,64 @@ functionality for counting the number of calls made to a particular url.
   (:use clj-http.fake))
 ```
 
+### With http-kit
+
+```clojure
+(ns myapp.test.core
+  (:require [org.httpkit.client :as http])
+  (:use httpkit.fake))
+```
+
 The public interface consists of macros:
 
-* ``with-fake-routes`` - lets you override clj-http requests that match keys in the provided map
+* ``with-fake-routes`` - lets you override HTTP requests that match keys in the provided map
 * ``with-fake-routes-in-isolation`` - does the same but throws if a request does not match any key
-* ``with-global-fake-routes``
-* ``with-global-fake-routes-in-isolation``
+* ``with-global-fake-routes`` (clj-http only)
+* ``with-global-fake-routes-in-isolation`` (clj-http only)
 
 'Global' counterparts use ``with-redefs`` instead of ``binding`` internally so they can be used in
-a multi-threaded environment.
+a multi-threaded environment (only available for clj-http).
 
 ### Examples
 
+The API is identical for both clj-http and http-kit, with the only difference being that http-kit uses callbacks/promises while clj-http is synchronous:
+
 ```clojure
+;; With clj-http:
+(with-fake-routes
+  {"http://api.example.com/data"
+   (fn [request] {:status 200 :headers {} :body "Hello World"})}
+  (c/get "http://api.example.com/data"))
+
+;; With http-kit:
+(with-fake-routes
+  {"http://api.example.com/data"
+   (fn [request] {:status 200 :headers {} :body "Hello World"})}
+  @(http/get "http://api.example.com/data"))
+
+;; Route matching examples (works the same for both clients):
 (with-fake-routes
   {;; Exact string match:
    "http://google.com/apps"
    (fn [request] {:status 200 :headers {} :body "Hey, do I look like Google.com?"})
-   ;; matches (c/get "http://google.com/apps")
 
    ;; Exact string match with query params:
    "http://google.com/?query=param"
    (fn [request] {:status 200 :headers {} :body "Nah, that can't be Google!"})
-   ;; matches (c/get "http://google.com/" {:query-params {:query "param"}})
 
    ;; Regexp match:
    #"https://([a-z]+).packett.cool"
    (fn [req] {:status 200 :headers {} :body "Hello world"})
-   ;; matches (c/get "https://labs.packett.cool"),
-   ;; (c/get "https://server.packett.cool") and so on, based on
-   ;; regexp.
 
-  ;; Match based an HTTP method:
+   ;; Match based on HTTP method:
    "http://shmoogle.com/"
    {:get (fn [req] {:status 200 :headers {} :body "What is Scmoogle anyways?"})}
-   ;; will match only (c/get "http://google.com/")
 
    ;; Match multiple HTTP methods:
    "http://doogle.com/"
    {:get    (fn [req] {:status 200 :headers {} :body "Nah, that can't be Google!"})
-    :delete (fn [req] {:status 401 :headers {} :body "Do you think you can delete me?!"})}
+    :delete (fn [req] {:status 401 :headers {} :body "Do you think you can delete me?!"})
+    :any    (fn [req] {:status 200 :headers {} :body "Matches any method"})}
 
    ;; Match using query params as a map
    {:address "http://google.com/search" :query-params {:q "aardark"}}
@@ -73,6 +93,7 @@ You can specify and validate the number of times a route should be called using 
 The `:times` option can be specified as a sibling of the HTTP methods:
 
 ```clojure
+;; With clj-http:
 (with-fake-routes
   {"http://api.example.com/data"
    {:get (fn [_] {:status 200 :body "ok"})
@@ -81,6 +102,16 @@ The `:times` option can be specified as a sibling of the HTTP methods:
   ;; This will pass - route is called exactly twice as expected
   (c/get "http://api.example.com/data")
   (c/get "http://api.example.com/data"))
+
+;; With http-kit:
+(with-fake-routes
+  {"http://api.example.com/data"
+   {:get (fn [_] {:status 200 :body "ok"})
+    :times 2}}
+  
+  ;; This will pass - route is called exactly twice as expected
+  @(http/get "http://api.example.com/data")
+  @(http/get "http://api.example.com/data"))
 
 ;; Multiple methods with shared count
 (with-fake-routes
@@ -107,6 +138,7 @@ For more granular control, `:times` can be a map specifying counts per HTTP meth
   (c/get "http://api.example.com/data")
   (c/post "http://api.example.com/data"))
 ```
+
 The `:times` option allows you to:
 - Verify a route is called exactly the expected number of times
 - Ensure endpoints aren't called more times than necessary
@@ -114,6 +146,38 @@ The `:times` option allows you to:
 
 If the actual number of calls doesn't match the expected count, an exception is thrown with a descriptive message. 
 If `:times` is not supplied, the route can be called any number of times.
+
+### URL Matching Details
+
+The library provides sophisticated URL matching capabilities:
+
+1. Default ports:
+   ```clojure
+   ;; These are equivalent:
+   "http://example.com:80/api"
+   "http://example.com/api"
+   ```
+
+2. Trailing slashes:
+   ```clojure
+   ;; These are equivalent:
+   "http://example.com/api/"
+   "http://example.com/api"
+   ```
+
+3. Default schemes:
+   ```clojure
+   ;; These are equivalent:
+   "http://example.com"
+   "example.com"
+   ```
+
+4. Query parameter order independence:
+   ```clojure
+   ;; These are equivalent:
+   "http://example.com/api?a=1&b=2"
+   "http://example.com/api?b=2&a=1"
+   ```
 
 ## Development
 
