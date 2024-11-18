@@ -100,7 +100,12 @@
   (let [schemes (potential-schemes-for request)
         server-ports (potential-server-ports-for request)
         uris (uris-fn request)
-        query-strings (potential-query-strings-for request)
+        query-params (:query-params request)
+        query-string (when query-params
+                      (ring-codec/form-encode query-params))
+        query-strings (if query-string
+                       [query-string]
+                       (potential-query-strings-for request))
         combinations (cartesian-product query-strings schemes server-ports uris)]
     (map #(merge request (zipmap [:query-string :scheme :server-port :uri] %)) combinations)))
 
@@ -110,14 +115,17 @@
    Returns a string in the format: scheme://server-name:port/uri?query-string
    where each component is optional."
   [request-map]
-  (let [{:keys [scheme server-name server-port uri query-string]} request-map
+  (let [{:keys [scheme server-name server-port uri query-string query-params]} request-map
         scheme-str (when-not (nil? scheme)
-                    (str (if (keyword? scheme) (name scheme) scheme) "://"))]
+                    (str (if (keyword? scheme) (name scheme) scheme) "://"))
+        query-str (or query-string
+                     (when query-params
+                       (ring-codec/form-encode query-params)))]
     (str/join [scheme-str
                server-name
                (when-not (nil? server-port) (str ":" server-port))
                (when-not (nil? uri) uri)
-               (when-not (nil? query-string) (str "?" query-string))])))
+               (when-not (nil? query-str) (str "?" query-str))])))
 
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
