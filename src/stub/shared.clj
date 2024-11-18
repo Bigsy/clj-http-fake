@@ -163,6 +163,18 @@
   (let [request-method (get-request-method request)]
     (contains? (set (distinct [:any request-method])) expected-method)))
 
+(defn create-response
+  "Creates a response map with default values merged with the provided response.
+   If response is a function, it will be called with the request as an argument.
+   Returns a map with :status, :headers, and :body."
+  [response request]
+  (merge {:status 200
+          :headers {}
+          :body ""}
+         (if (fn? response)
+           (response request)
+           response)))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]

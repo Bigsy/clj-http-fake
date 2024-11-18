@@ -158,8 +158,7 @@
         handler-fn (if (map? route-handler) (:handler route-handler) route-handler)
         route-key (str (:address route) (:method route))
         _ (swap! shared/*call-counts* update route-key (fnil inc 0))
-        response (merge {:status 200 :body ""}
-                       (handler-fn (unwrap-body request)))]
+        response (shared/create-response handler-fn (unwrap-body request))]
     (assoc response :body (body-bytes (:body response)))))
 
 (defn- throw-no-stub-route-exception

@@ -49,14 +49,6 @@
                            :method method
                            :query-params (:query-params request)})))])))
 
-(defn- create-response [response request]
-  (merge {:status 200
-          :headers {}
-          :body ""}
-         (if (fn? response)
-           (response request)
-           response)))
-
 (defn wrap-request-with-stub [client]
   (fn [req callback]
     (let [request (normalize-request-map req)
@@ -66,7 +58,7 @@
         (swap! shared/*call-counts* update (str url ":" (name (:method request))) (fnil inc 0)))
       (let [response-promise (promise)]
         (if matching-route
-          (deliver response-promise (create-response response request))
+          (deliver response-promise (shared/create-response response request))
           (if shared/*in-isolation*
             (throw (Exception. (str "No matching stub route found for " (:method request) " "
                                   (:url request))))
