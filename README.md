@@ -26,8 +26,8 @@ The public interface consists of macros:
 
 * ``with-http-stub`` - lets you override HTTP requests that match keys in the provided map
 * ``with-http-stub-in-isolation`` - does the same but throws if a request does not match any key
-* ``with-global-http-stub`` (clj-http only)
-* ``with-global-http-stub-in-isolation`` (clj-http only)
+* ``with-global-http-stub`` 
+* ``with-global-http-stub-in-isolation``
 
 'Global' counterparts use ``with-redefs`` instead of ``binding`` internally so they can be used in
 a multi-threaded environment (only available for clj-http).
