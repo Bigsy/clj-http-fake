@@ -8,6 +8,13 @@
 (def ^:dynamic *call-counts* (atom {}))
 (def ^:dynamic *expected-counts* (atom {}))
 
+(defn normalize-path [path]
+  (cond
+    (nil? path) "/"
+    (str/blank? path) "/"
+    (str/ends-with? path "/") path
+    :else (str path "/")))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]

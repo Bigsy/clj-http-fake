@@ -5,7 +5,8 @@
             [ring.util.codec :as ring-codec]
             [robert.hooke :refer [add-hook]]
             [clojure.math.combinatorics :refer :all]
-            [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* validate-all-call-counts]]
+            [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
+                               validate-all-call-counts normalize-path]]
             [clojure.string :as str]))
 
 (defprotocol RouteMatcher
@@ -13,13 +14,6 @@
 
 (defn- defaults-or-value [defaults value]
   (if (contains? defaults value) (reverse (vec defaults)) (vector value)))
-
-(defn- normalize-path [path]
-  (cond
-    (nil? path) "/"
-    (str/blank? path) "/"
-    (str/ends-with? path "/") path
-    :else (str path "/")))
 
 (defn- parse-url [url]
   (let [[url query] (str/split url #"\?" 2)
