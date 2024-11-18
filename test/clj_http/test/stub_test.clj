@@ -1,8 +1,8 @@
-(ns clj-http.test.fake_test
+(ns clj-http.test.stub_test
   (:require [clj-http.client :as http]
             [clj-http.core :as core]
             [clj-http.util :as util])
-  (:use [clj-http.fake]
+  (:use [clj-http.stub]
         [clojure.test]
         :reload-all)
   (:import (java.net ConnectException)))
@@ -298,7 +298,7 @@
           (let [val (atom [])
                 p (promise)]
             (is (thrown-with-msg? Exception
-                                  #"(?is)No matching fake route .*"
+                                  #"(?is)No matching stub route .*"
                                   (http/get "http://somerandomhost.com/"
                                             {:as :byte-array :async? true}
                                             (partial swap! val conj)
@@ -308,5 +308,5 @@
             @p  ; Wait for the exception
             (is (= 1 (count @val)))
             (is (instance? Exception (first @val)))
-            (is (re-matches #"(?is)No matching fake route .*"
+            (is (re-matches #"(?is)No matching stub route .*"
                             (.getMessage (first @val))))))))))

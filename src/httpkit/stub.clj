@@ -1,11 +1,11 @@
-(ns httpkit.fake
+(ns httpkit.stub
   (:import [java.util.regex Pattern]
            [java.net URLEncoder URLDecoder])
   (:require [org.httpkit.client :as http]
             [ring.util.codec :as ring-codec]
             [robert.hooke :refer [add-hook]]
             [clojure.math.combinatorics :refer :all]
-            [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
+            [stub.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts*
                                validate-all-call-counts normalize-path defaults-or-value
                                query-params-match? parse-url potential-server-ports-for
                                potential-schemes-for potential-query-strings-for
@@ -80,7 +80,7 @@
             :body ""}
            resp)))
 
-(defn wrap-request-with-fake [client]
+(defn wrap-request-with-stub [client]
   (fn [req callback]
     (let [request (normalize-request-map req)
           matching-route (find-matching-route *fake-routes* request)
@@ -96,7 +96,7 @@
                 resp (create-response response request)]
             (deliver response-promise resp))
           (if *in-isolation*
-            (throw (Exception. (str "No matching fake route found for " (:method request) " "
+            (throw (Exception. (str "No matching stub route found for " (:method request) " "
                                   (:url request))))
             (client req #(deliver response-promise %))))
         (callback @response-promise)
@@ -111,7 +111,7 @@
      (binding [*fake-routes* s#
                *call-counts* (atom {})
                *expected-counts* (atom {})]
-       (with-redefs [http/request (wrap-request-with-fake http/request)]
+       (with-redefs [http/request (wrap-request-with-stub http/request)]
          (try
            (let [result# (do ~@body)]
              (validate-all-call-counts)

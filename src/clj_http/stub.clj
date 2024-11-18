@@ -1,11 +1,11 @@
-(ns clj-http.fake
+(ns clj-http.stub
   (:import [java.util.regex Pattern]
            [java.util Map]
            [java.net URLEncoder URLDecoder]
            [org.apache.http HttpEntity])
   (:require [clj-http.core]
             [ring.util.codec :as ring-codec]
-            [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
+            [stub.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts*
                                validate-all-call-counts defaults-or-value query-params-match?
                                potential-server-ports-for potential-schemes-for
                                potential-query-strings-for potential-alternatives-to
@@ -167,12 +167,12 @@
                        (handler-fn (unwrap-body request)))]
     (assoc response :body (body-bytes (:body response)))))
 
-(defn- throw-no-fake-route-exception
+(defn- throw-no-stub-route-exception
   [request]
   (throw (Exception.
            ^String
            (apply format
-                  "No matching fake route found to handle request. Request details: \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s "
+                  "No matching stub route found to handle request. Request details: \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s "
                   (select-keys request [:scheme :request-method :server-name :uri :query-string])))))
 
 (defn try-intercept
@@ -183,7 +183,7 @@
             (catch Exception e (raise e)))
        nil)
      (if *in-isolation*
-       (try (throw-no-fake-route-exception request)
+       (try (throw-no-stub-route-exception request)
             (catch Exception e
               (raise e)
               (throw e)))
@@ -192,7 +192,7 @@
    (if-let [matching-route (get-matching-route request)]
      (handle-request-for-route request matching-route)
      (if *in-isolation*
-       (throw-no-fake-route-exception request)
+       (throw-no-stub-route-exception request)
        (origfn request)))))
 
 (defn initialize-request-hook []

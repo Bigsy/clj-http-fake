@@ -1,6 +1,6 @@
-# clj-http-fake 
+# clj-http-stub 
 [![MIT License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://www.tldrlegal.com/l/mit) 
-[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.bigsy/clj-http-fake.svg)](https://clojars.org/org.clojars.bigsy/clj-http-fake)
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.bigsy/clj-http-stub.svg)](https://clojars.org/org.clojars.bigsy/clj-http-stub)
 
 This is a library for stubbing out HTTP requests in Clojure. It supports both clj-http and http-kit clients with a consistent API.
 
@@ -10,16 +10,16 @@ This is a library for stubbing out HTTP requests in Clojure. It supports both cl
 
 ```clojure
 (ns myapp.test.core
-  (:require [clj-http.client :as c])
-  (:use clj-http.fake))
+   (:require [clj-http.client :as c])
+   (:use clj-http.stub))
 ```
 
 ### With http-kit
 
 ```clojure
 (ns myapp.test.core
-  (:require [org.httpkit.client :as http])
-  (:use httpkit.fake))
+   (:require [org.httpkit.client :as http])
+   (:use httpkit.stub))
 ```
 
 The public interface consists of macros:
@@ -77,7 +77,7 @@ The API is identical for both clj-http and http-kit, with the only difference be
    {:address "http://google.com/search" :query-params {:q "aardark"}}
    (fn [req] {:status 200 :headers {} :body "Searches have results"})
 
-   ;; If not given, the fake response status will be 200 and the body will be "".
+   ;; If not given, the stub response status will be 200 and the body will be "".
    "https://duckduckgo.com/?q=ponies"
    (constantly {})}
 

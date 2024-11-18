@@ -1,4 +1,4 @@
-(ns fake.shared
+(ns stub.shared
   (:require [clojure.math.combinatorics :refer [cartesian-product permutations]]
             [clojure.string :as str]
             [ring.util.codec :as ring-codec]))
