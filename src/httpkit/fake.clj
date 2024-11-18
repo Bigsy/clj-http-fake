@@ -9,7 +9,7 @@
                                validate-all-call-counts normalize-path defaults-or-value
                                query-params-match? parse-url potential-server-ports-for
                                potential-schemes-for potential-query-strings-for
-                               potential-alternatives-to]]
+                               potential-alternatives-to address-string-for]]
             [clojure.string :as str]))
 
 (defprotocol RouteMatcher
@@ -20,14 +20,6 @@
     (if (str/blank? uri)
       ["/" "" nil]
       [(normalize-path uri) (str/replace uri #"/+$" "")])))
-
-(defn- address-string-for [request-map]
-  (let [{:keys [scheme server-name server-port uri query-string]} request-map]
-    (str/join [(if (nil? scheme) "" (str scheme "://"))
-               server-name
-               (if (nil? server-port) "" (str ":" server-port))
-               (if (nil? uri) "" uri)
-               (if (nil? query-string) "" (str "?" query-string))])))
 
 (defn- matches-url [url request]
   (let [parsed-url (if (string? url) (parse-url url) url)

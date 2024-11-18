@@ -104,6 +104,21 @@
         combinations (cartesian-product query-strings schemes server-ports uris)]
     (map #(merge request (zipmap [:query-string :scheme :server-port :uri] %)) combinations)))
 
+(defn address-string-for
+  "Converts a request map into a URL string.
+   Handles both keyword (:http) and string ('http') schemes.
+   Returns a string in the format: scheme://server-name:port/uri?query-string
+   where each component is optional."
+  [request-map]
+  (let [{:keys [scheme server-name server-port uri query-string]} request-map
+        scheme-str (when-not (nil? scheme)
+                    (str (if (keyword? scheme) (name scheme) scheme) "://"))]
+    (str/join [scheme-str
+               server-name
+               (when-not (nil? server-port) (str ":" server-port))
+               (when-not (nil? uri) uri)
+               (when-not (nil? query-string) (str "?" query-string))])))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]

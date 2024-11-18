@@ -8,7 +8,8 @@
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
                                validate-all-call-counts defaults-or-value query-params-match?
                                potential-server-ports-for potential-schemes-for
-                               potential-query-strings-for potential-alternatives-to]])
+                               potential-query-strings-for potential-alternatives-to
+                               address-string-for]])
   (:use [robert.hooke]
         [clojure.math.combinatorics]
         [clojure.string :only [join split]]))
@@ -59,14 +60,6 @@
 
 (defn- potential-uris-for [request-map]
   (defaults-or-value #{"/" "" nil} (:uri request-map)))
-
-(defn- address-string-for [request-map]
-  (let [{:keys [scheme server-name server-port uri query-string]} request-map]
-    (join [(if (nil? scheme)       "" (format "%s://" (name scheme)))
-           server-name
-           (if (nil? server-port)  "" (format ":%s"   server-port))
-           (if (nil? uri)          "" uri)
-           (if (nil? query-string) "" (format "?%s"   query-string))])))
 
 (defprotocol RouteMatcher
   (matches [address method request]))
