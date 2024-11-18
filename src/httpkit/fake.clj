@@ -8,7 +8,8 @@
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
                                validate-all-call-counts normalize-path defaults-or-value
                                query-params-match? parse-url potential-server-ports-for
-                               potential-schemes-for potential-query-strings-for]]
+                               potential-schemes-for potential-query-strings-for
+                               potential-alternatives-to]]
             [clojure.string :as str]))
 
 (defprotocol RouteMatcher
@@ -19,14 +20,6 @@
     (if (str/blank? uri)
       ["/" "" nil]
       [(normalize-path uri) (str/replace uri #"/+$" "")])))
-
-(defn- potential-alternatives-to [request]
-  (let [schemes (potential-schemes-for request)
-        server-ports (potential-server-ports-for request)
-        uris (potential-uris-for request)
-        query-strings (potential-query-strings-for request)
-        combinations (cartesian-product query-strings schemes server-ports uris)]
-    (map #(merge request (zipmap [:query-string :scheme :server-port :uri] %)) combinations)))
 
 (defn- address-string-for [request-map]
   (let [{:keys [scheme server-name server-port uri query-string]} request-map]
@@ -42,7 +35,7 @@
                  (assoc (parse-url (:url request))
                         :query-string (ring-codec/form-encode (:query-params request)))
                  (parse-url (:url request)))
-        address-strings (map address-string-for (potential-alternatives-to req-map))]
+        address-strings (map address-string-for (potential-alternatives-to req-map potential-uris-for))]
     (cond
       (instance? Pattern url) (some #(re-matches url %) address-strings)
       :else (some #(= (address-string-for parsed-url) %) address-strings))))

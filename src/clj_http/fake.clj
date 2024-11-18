@@ -8,7 +8,7 @@
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
                                validate-all-call-counts defaults-or-value query-params-match?
                                potential-server-ports-for potential-schemes-for
-                               potential-query-strings-for]])
+                               potential-query-strings-for potential-alternatives-to]])
   (:use [robert.hooke]
         [clojure.math.combinatorics]
         [clojure.string :only [join split]]))
@@ -60,14 +60,6 @@
 (defn- potential-uris-for [request-map]
   (defaults-or-value #{"/" "" nil} (:uri request-map)))
 
-(defn- potential-alternatives-to [request]
-  (let [schemes       (potential-schemes-for       request)
-        server-ports  (potential-server-ports-for  request)
-        uris          (potential-uris-for          request)
-        query-strings (potential-query-strings-for request)
-        combinations  (cartesian-product query-strings schemes server-ports uris)]
-    (map #(merge request (zipmap [:query-string :scheme :server-port :uri] %)) combinations)))
-
 (defn- address-string-for [request-map]
   (let [{:keys [scheme server-name server-port uri query-string]} request-map]
     (join [(if (nil? scheme)       "" (format "%s://" (name scheme)))
@@ -114,7 +106,7 @@
   Pattern
   (matches [address method request]
     (let [request-method (:request-method request)
-          address-strings (map address-string-for (potential-alternatives-to request))]
+          address-strings (map address-string-for (potential-alternatives-to request potential-uris-for))]
       (and (contains? (set (distinct [:any request-method])) method)
            (some #(re-matches address %) address-strings))))
   Map

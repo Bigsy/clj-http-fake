@@ -88,6 +88,22 @@
       (map (partial str/join "&") (permutations (str/split (first queries) #"&|;")))
       queries)))
 
+(defn potential-alternatives-to
+  "Given a request map and a function to generate potential URIs,
+   returns a sequence of all possible alternative request maps
+   by combining different schemes, server ports, URIs, and query strings.
+   Each alternative preserves all other fields from the original request.
+   
+   The uris-fn parameter should be a function that takes a request map and returns
+   a sequence of potential URIs for that request."
+  [request uris-fn]
+  (let [schemes (potential-schemes-for request)
+        server-ports (potential-server-ports-for request)
+        uris (uris-fn request)
+        query-strings (potential-query-strings-for request)
+        combinations (cartesian-product query-strings schemes server-ports uris)]
+    (map #(merge request (zipmap [:query-string :scheme :server-port :uri] %)) combinations)))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]
