@@ -11,7 +11,8 @@
                  [http-kit "2.7.0"]
                  [ring/ring-codec "1.2.0"]]
   :aliases {"test-3.x" ["with-profile" "clj-3.x,1.10:clj-3.x,1.11:clj-3.x,1.12" "test"]}
-  :profiles {:dev {:dependencies [[org.clojure/clojure "1.12.0"]]}
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.12.0"]
+                                 [hashp "0.2.2"]]}
              :1.12 {:dependencies [[org.clojure/clojure "1.12.0"]]}
              :1.11 {:dependencies [[org.clojure/clojure "1.11.1"]]}
              :1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
