@@ -39,9 +39,14 @@
           :when (matches-url url request)
           :let [method (:method request)
                 handler (or (get handlers method)
-                          (get handlers :any))]
+                          (get handlers :any))
+                times (or (get-in handlers [:times method])  ; Get method-specific times
+                         (:times handlers))]                 ; Or global times
           :when handler]
       [url (fn [req] 
+            ;; Set up expected counts if :times is specified
+            (when times
+              (swap! shared/*expected-counts* assoc (str url ":" (name method)) times))
             (handler (merge req 
                           {:url (:url request)
                            :method method
@@ -61,7 +66,7 @@
           matching-route (find-matching-route shared/*stub-routes* request)
           [url response] matching-route]
       (when url
-        (swap! shared/*call-counts* update-in [url (:method request)] (fnil inc 0)))
+        (swap! shared/*call-counts* update (str url ":" (name (:method request))) (fnil inc 0)))
       (let [response-promise (promise)]
         (if matching-route
           (deliver response-promise (create-response response request))
@@ -78,7 +83,8 @@
    {\"http://example.com\" 
     {:get (fn [req] {:status 200})
      :post (fn [req] {:status 201})
-     :any (fn [req] {:status 200})}}"
+     :any (fn [req] {:status 200})
+     :times 2}}  ; New :times support"
   [routes & body]
   `(let [s# ~routes]
      (assert (map? s#))
