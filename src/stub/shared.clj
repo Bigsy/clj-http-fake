@@ -3,7 +3,7 @@
             [clojure.string :as str]
             [ring.util.codec :as ring-codec]))
 
-(def ^:dynamic *fake-routes* {})
+(def ^:dynamic *stub-routes* {})
 (def ^:dynamic *in-isolation* false)
 (def ^:dynamic *call-counts* (atom {}))
 (def ^:dynamic *expected-counts* (atom {}))

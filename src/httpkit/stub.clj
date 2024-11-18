@@ -5,7 +5,7 @@
             [ring.util.codec :as ring-codec]
             [robert.hooke :refer [add-hook]]
             [clojure.math.combinatorics :refer :all]
-            [stub.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts*
+            [stub.shared :refer [*stub-routes* *in-isolation* *call-counts* *expected-counts*
                                validate-all-call-counts normalize-path defaults-or-value
                                query-params-match? parse-url potential-server-ports-for
                                potential-schemes-for potential-query-strings-for
@@ -83,7 +83,7 @@
 (defn wrap-request-with-stub [client]
   (fn [req callback]
     (let [request (normalize-request-map req)
-          matching-route (find-matching-route *fake-routes* request)
+          matching-route (find-matching-route *stub-routes* request)
           route-key (first matching-route)]
       (when route-key
         (swap! *call-counts* update-in [(if (vector? route-key)
@@ -108,7 +108,7 @@
   [routes & body]
   `(let [s# ~routes]
      (assert (map? s#))
-     (binding [*fake-routes* s#
+     (binding [*stub-routes* s#
                *call-counts* (atom {})
                *expected-counts* (atom {})]
        (with-redefs [http/request (wrap-request-with-stub http/request)]

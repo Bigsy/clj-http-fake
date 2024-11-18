@@ -5,7 +5,7 @@
            [org.apache.http HttpEntity])
   (:require [clj-http.core]
             [ring.util.codec :as ring-codec]
-            [stub.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts*
+            [stub.shared :refer [*stub-routes* *in-isolation* *call-counts* *expected-counts*
                                validate-all-call-counts defaults-or-value query-params-match?
                                potential-server-ports-for potential-schemes-for
                                potential-query-strings-for potential-alternatives-to
@@ -27,7 +27,7 @@
   [routes & body]
   `(let [s# ~routes]
     (assert (map? s#))
-    (binding [*fake-routes* s#
+    (binding [*stub-routes* s#
               *call-counts* (atom {})
               *expected-counts* (atom {})]
       (try
@@ -47,7 +47,7 @@
   [routes & body]
   `(let [s# ~routes]
      (assert (map? s#))
-     (with-redefs [*fake-routes* s#
+     (with-redefs [*stub-routes* s#
                    *call-counts* (atom {})
                    *expected-counts* (atom {})]
        (try
@@ -152,7 +152,7 @@
 
 (defn- get-matching-route
   [request]
-  (->> *fake-routes*
+  (->> *stub-routes*
        flatten-routes
        (filter #(matches (:address %) (:method %) request))
        first))
