@@ -7,32 +7,11 @@
             [clojure.math.combinatorics :refer :all]
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
                                validate-all-call-counts normalize-path defaults-or-value
-                               query-params-match?]]
+                               query-params-match? parse-url potential-server-ports-for]]
             [clojure.string :as str]))
 
 (defprotocol RouteMatcher
   (matches [address method request]))
-
-(defn- parse-url [url]
-  (let [[url query] (str/split url #"\?" 2)
-        [scheme rest] (if (str/includes? url "://")
-                       (str/split url #"://" 2)
-                       [nil url])
-        [server-name path] (if (str/includes? rest "/")
-                           (let [idx (str/index-of rest "/")]
-                             [(subs rest 0 idx) (subs rest idx)])
-                           [rest "/"])
-        [server-name port] (if (str/includes? server-name ":")
-                           (str/split server-name #":" 2)
-                           [server-name nil])]
-    {:scheme scheme
-     :server-name server-name
-     :server-port (when port (Integer/parseInt port))
-     :uri (normalize-path path)
-     :query-string query}))
-
-(defn- potential-server-ports-for [request-map]
-  (defaults-or-value #{80 nil} (:server-port request-map)))
 
 (defn- potential-uris-for [request-map]
   (let [uri (:uri request-map)]

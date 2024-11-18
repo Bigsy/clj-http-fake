@@ -6,7 +6,8 @@
   (:require [clj-http.core]
             [ring.util.codec :as ring-codec]
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
-                               validate-all-call-counts defaults-or-value query-params-match?]])
+                               validate-all-call-counts defaults-or-value query-params-match?
+                               potential-server-ports-for]])
   (:use [robert.hooke]
         [clojure.math.combinatorics]
         [clojure.string :only [join split]]))
@@ -54,9 +55,6 @@
          (finally
            (reset! *call-counts* {})
            (reset! *expected-counts* {}))))))
-
-(defn- potential-server-ports-for [request-map]
-  (defaults-or-value #{80 nil} (:server-port request-map)))
 
 (defn- potential-uris-for [request-map]
   (defaults-or-value #{"/" "" nil} (:uri request-map)))

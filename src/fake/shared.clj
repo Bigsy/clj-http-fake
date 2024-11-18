@@ -40,6 +40,33 @@
                   (= v (get actual-query-params k)))
                 expected-query-params))))
 
+(defn parse-url 
+  "Parse a URL string into a map containing :scheme, :server-name, :server-port, :uri, and :query-string"
+  [url]
+  (let [[url query] (str/split url #"\?" 2)
+        [scheme rest] (if (str/includes? url "://")
+                       (str/split url #"://" 2)
+                       [nil url])
+        [server-name path] (if (str/includes? rest "/")
+                           (let [idx (str/index-of rest "/")]
+                             [(subs rest 0 idx) (subs rest idx)])
+                           [rest "/"])
+        [server-name port] (if (str/includes? server-name ":")
+                           (str/split server-name #":" 2)
+                           [server-name nil])]
+    {:scheme scheme
+     :server-name server-name
+     :server-port (when port (Integer/parseInt port))
+     :uri (normalize-path path)
+     :query-string query}))
+
+(defn potential-server-ports-for
+  "Given a request map, returns a vector of potential server ports.
+   If the request's server-port is 80 or nil, returns [80 nil],
+   otherwise returns a vector with just the specified port."
+  [request-map]
+  (defaults-or-value #{80 nil} (:server-port request-map)))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]
