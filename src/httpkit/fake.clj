@@ -7,7 +7,8 @@
             [clojure.math.combinatorics :refer :all]
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
                                validate-all-call-counts normalize-path defaults-or-value
-                               query-params-match? parse-url potential-server-ports-for]]
+                               query-params-match? parse-url potential-server-ports-for
+                               potential-schemes-for]]
             [clojure.string :as str]))
 
 (defprotocol RouteMatcher
@@ -18,9 +19,6 @@
     (if (str/blank? uri)
       ["/" "" nil]
       [(normalize-path uri) (str/replace uri #"/+$" "")])))
-
-(defn- potential-schemes-for [request-map]
-  (defaults-or-value #{"http" nil} (:scheme request-map)))
 
 (defn- potential-query-strings-for [request-map]
   (let [queries (defaults-or-value #{"" nil} (:query-string request-map))

@@ -67,6 +67,16 @@
   [request-map]
   (defaults-or-value #{80 nil} (:server-port request-map)))
 
+(defn potential-schemes-for
+  "Given a request map, returns a vector of potential schemes.
+   Handles both string ('http') and keyword (:http) schemes.
+   If the request's scheme is http/nil, returns [http nil],
+   otherwise returns a vector with just the specified scheme."
+  [request-map]
+  (let [scheme (:scheme request-map)
+        scheme-val (if (keyword? scheme) :http "http")]
+    (defaults-or-value #{scheme-val nil} scheme)))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]

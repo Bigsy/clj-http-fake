@@ -7,7 +7,7 @@
             [ring.util.codec :as ring-codec]
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
                                validate-all-call-counts defaults-or-value query-params-match?
-                               potential-server-ports-for]])
+                               potential-server-ports-for potential-schemes-for]])
   (:use [robert.hooke]
         [clojure.math.combinatorics]
         [clojure.string :only [join split]]))
@@ -58,9 +58,6 @@
 
 (defn- potential-uris-for [request-map]
   (defaults-or-value #{"/" "" nil} (:uri request-map)))
-
-(defn- potential-schemes-for [request-map]
-  (defaults-or-value #{:http nil} (keyword (:scheme request-map))))
 
 (defn- potential-query-strings-for [request-map]
   (let [queries (defaults-or-value #{"" nil} (:query-string request-map))
