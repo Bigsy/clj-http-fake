@@ -7,7 +7,7 @@
 
 (deftest times-mismatch-includes-route-info
   (try
-    (with-fake-routes
+    (with-http-stub
       {"http://example.com/test" {:get (with-meta
                                          (fn [_] {:status 200 :headers {} :body "response"})
                                          {:times 2})}}
@@ -19,7 +19,7 @@
 
 (deftest expected-call-count-test
   (testing "passes when route is called expected number of times"
-    (with-fake-routes
+    (with-http-stub
       {"http://example.com"
        {:get (fn [_] {:status 200 :body "ok"})
         :times 2}}
@@ -28,7 +28,7 @@
 
   (testing "fails when route is called less than expected times"
     (try
-      (with-fake-routes
+      (with-http-stub
         {"http://example.com"
          {:get (fn [_] {:status 200 :body "ok"})
           :times 2}}
@@ -39,7 +39,7 @@
 
   (testing "fails when route is called more than expected times"
     (try
-      (with-fake-routes
+      (with-http-stub
         {"http://example.com"
          {:get (fn [_] {:status 200 :body "ok"})
           :times 1}}
@@ -51,7 +51,7 @@
 
 (deftest multiple-routes-with-times-test
   (testing "passes when multiple routes are called their expected number of times"
-    (with-fake-routes
+    (with-http-stub
       {"http://example.com/api1"
        {:get (fn [_] {:status 200 :body "ok1"})
         :times 2}
@@ -64,7 +64,7 @@
 
   (testing "fails when any route is not called its expected number of times"
     (try
-      (with-fake-routes
+      (with-http-stub
         {"http://example.com/api1"
          {:get (fn [_] {:status 200 :body "ok1"})
           :times 2}
@@ -79,7 +79,7 @@
 
 (deftest times-with-different-methods-test
   (testing "passes when route is called expected number of times with different methods"
-    (with-fake-routes
+    (with-http-stub
       {"http://example.com"
        {:get (fn [_] {:status 200 :body "ok"})
         :post (fn [_] {:status 201 :body "created"})
@@ -90,7 +90,7 @@
 
   (testing "fails when any method is not called its expected number of times"
     (try
-      (with-fake-routes
+      (with-http-stub
         {"http://example.com"
          {:get (fn [_] {:status 200 :body "ok"})
           :post (fn [_] {:status 201 :body "created"})
@@ -103,7 +103,7 @@
 
 (deftest times-edge-cases-test
   (testing "passes when route with :times 0 is never called"
-    (with-fake-routes
+    (with-http-stub
       {"http://example.com"
        {:get (fn [_] {:status 200 :body "ok"})
         :times 0}}
@@ -111,7 +111,7 @@
 
   (testing "fails when route with :times 0 is called"
     (try
-      (with-fake-routes
+      (with-http-stub
         {"http://example.com"
          {:get (fn [_] {:status 200 :body "ok"})
           :times 0}}
@@ -122,7 +122,7 @@
 
 (deftest shared-count-with-different-methods-test
   (testing "passes when multiple methods share a count and are called expected number of times"
-    (with-fake-routes
+    (with-http-stub
       {"http://example.com"
        {:get (fn [_] {:status 200 :body "ok"})
         :post (fn [_] {:status 201 :body "created"})
@@ -132,7 +132,7 @@
 
   (testing "fails when shared count is exceeded by any method"
     (try
-      (with-fake-routes
+      (with-http-stub
         {"http://example.com"
          {:get (fn [_] {:status 200 :body "ok"})
           :post (fn [_] {:status 201 :body "created"})
@@ -144,7 +144,7 @@
         (is (= (.getMessage e) "Expected route 'http://example.com:get' to be called 1 times but was called 2 times"))))))
 
 (comment
-  (with-fake-routes
+  (with-http-stub
     {"http://example.com"
      {:get (fn [_] {:status 200 :body "ok"})
       :times 1}}

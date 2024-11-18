@@ -102,7 +102,7 @@
         (callback @response-promise)
         response-promise))))
 
-(defmacro with-fake-routes
+(defmacro with-http-stub
   "Makes all wrapped http-kit requests first match against given routes.
   The actual HTTP request will be sent only if no matches are found."
   [routes & body]
@@ -120,9 +120,9 @@
              (reset! *call-counts* {})
              (reset! *expected-counts* {})))))))
 
-(defmacro with-fake-routes-in-isolation
+(defmacro with-http-stub-in-isolation
   "Makes all wrapped http-kit requests first match against given routes.
   If no route matches, an exception is thrown."
   [routes & body]
   `(binding [*in-isolation* true]
-     (with-fake-routes ~routes ~@body)))
+     (with-http-stub ~routes ~@body)))

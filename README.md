@@ -24,10 +24,10 @@ This is a library for stubbing out HTTP requests in Clojure. It supports both cl
 
 The public interface consists of macros:
 
-* ``with-fake-routes`` - lets you override HTTP requests that match keys in the provided map
-* ``with-fake-routes-in-isolation`` - does the same but throws if a request does not match any key
-* ``with-global-fake-routes`` (clj-http only)
-* ``with-global-fake-routes-in-isolation`` (clj-http only)
+* ``with-http-stub`` - lets you override HTTP requests that match keys in the provided map
+* ``with-http-stub-in-isolation`` - does the same but throws if a request does not match any key
+* ``with-global-http-stub`` (clj-http only)
+* ``with-global-http-stub-in-isolation`` (clj-http only)
 
 'Global' counterparts use ``with-redefs`` instead of ``binding`` internally so they can be used in
 a multi-threaded environment (only available for clj-http).
@@ -38,19 +38,19 @@ The API is identical for both clj-http and http-kit, with the only difference be
 
 ```clojure
 ;; With clj-http:
-(with-fake-routes
+(with-http-stub
   {"http://api.example.com/data"
    (fn [request] {:status 200 :headers {} :body "Hello World"})}
   (c/get "http://api.example.com/data"))
 
 ;; With http-kit:
-(with-fake-routes
+(with-http-stub
   {"http://api.example.com/data"
    (fn [request] {:status 200 :headers {} :body "Hello World"})}
   @(http/get "http://api.example.com/data"))
 
 ;; Route matching examples (works the same for both clients):
-(with-fake-routes
+(with-http-stub
   {;; Exact string match:
    "http://google.com/apps"
    (fn [request] {:status 200 :headers {} :body "Hey, do I look like Google.com?"})
@@ -94,7 +94,7 @@ The `:times` option can be specified as a sibling of the HTTP methods:
 
 ```clojure
 ;; With clj-http:
-(with-fake-routes
+(with-http-stub
   {"http://api.example.com/data"
    {:get (fn [_] {:status 200 :body "ok"})
     :times 2}}
@@ -104,7 +104,7 @@ The `:times` option can be specified as a sibling of the HTTP methods:
   (c/get "http://api.example.com/data"))
 
 ;; With http-kit:
-(with-fake-routes
+(with-http-stub
   {"http://api.example.com/data"
    {:get (fn [_] {:status 200 :body "ok"})
     :times 2}}
@@ -114,7 +114,7 @@ The `:times` option can be specified as a sibling of the HTTP methods:
   @(http/get "http://api.example.com/data"))
 
 ;; Multiple methods with shared count
-(with-fake-routes
+(with-http-stub
   {"http://api.example.com/data"
    {:get (fn [_] {:status 200 :body "ok"})
     :post (fn [_] {:status 201 :body "created"})
@@ -127,7 +127,7 @@ The `:times` option can be specified as a sibling of the HTTP methods:
 For more granular control, `:times` can be a map specifying counts per HTTP method:
 
 ```clojure
-(with-fake-routes
+(with-http-stub
   {"http://api.example.com/data"
    {:get (fn [_] {:status 200 :body "ok"})
     :post (fn [_] {:status 201 :body "created"})
