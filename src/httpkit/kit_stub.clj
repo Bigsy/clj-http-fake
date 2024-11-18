@@ -1,4 +1,4 @@
-(ns httpkit.stub
+(ns httpkit.kit_stub
   (:import (clojure.lang PersistentArrayMap PersistentVector)
            [java.util.regex Pattern])
   (:require [org.httpkit.client :as http]

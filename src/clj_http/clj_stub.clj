@@ -1,4 +1,4 @@
-(ns clj-http.stub
+(ns clj-http.clj_stub
   (:import [java.util.regex Pattern]
            [java.util Map]
            [java.net URLEncoder]

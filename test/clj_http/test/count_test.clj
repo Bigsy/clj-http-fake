@@ -1,7 +1,7 @@
 (ns clj-http.test.count-test
   (:require [clj-http.client :as http]
             [stub.shared :refer [*call-counts* *expected-counts*]])
-  (:use [clj-http.stub]
+  (:use [clj-http.clj_stub]
         [clojure.test]
         :reload-all))
 

@@ -11,7 +11,7 @@ This is a library for stubbing out HTTP requests in Clojure. It supports both cl
 ```clojure
 (ns myapp.test.core
    (:require [clj-http.client :as c])
-   (:use clj-http.stub))
+   (:use clj-http.clj_stub))
 ```
 
 ### With http-kit
@@ -19,7 +19,7 @@ This is a library for stubbing out HTTP requests in Clojure. It supports both cl
 ```clojure
 (ns myapp.test.core
    (:require [org.httpkit.client :as http])
-   (:use httpkit.stub))
+   (:use httpkit.kit_stub))
 ```
 
 The public interface consists of macros:

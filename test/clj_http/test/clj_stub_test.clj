@@ -1,8 +1,8 @@
-(ns clj-http.test.stub_test
+(ns clj-http.test.clj_stub_test
   (:require [clj-http.client :as http]
             [clj-http.core :as core]
             [clj-http.util :as util])
-  (:use [clj-http.stub]
+  (:use [clj-http.clj_stub]
         [clojure.test]
         :reload-all)
   (:import (java.net ConnectException)))
