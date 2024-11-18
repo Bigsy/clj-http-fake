@@ -1,15 +1,10 @@
 (ns clj-http.stub
   (:import [java.util.regex Pattern]
            [java.util Map]
-           [java.net URLEncoder URLDecoder]
+           [java.net URLEncoder]
            [org.apache.http HttpEntity])
   (:require [clj-http.core]
-            [ring.util.codec :as ring-codec]
-            [stub.shared :refer [*stub-routes* *in-isolation* *call-counts* *expected-counts*
-                               validate-all-call-counts defaults-or-value query-params-match?
-                               potential-server-ports-for potential-schemes-for
-                               potential-query-strings-for potential-alternatives-to
-                               address-string-for]])
+            [stub.shared :as shared])
   (:use [robert.hooke]
         [clojure.math.combinatorics]
         [clojure.string :only [join split]]))
@@ -18,7 +13,7 @@
   "Makes all wrapped clj-http requests first match against given routes.
   If no route matches, an exception is thrown."
   [routes & body]
-  `(binding [*in-isolation* true]
+  `(binding [shared/*in-isolation* true]
     (with-http-stub ~routes ~@body)))
 
 (defmacro with-http-stub
@@ -27,39 +22,39 @@
   [routes & body]
   `(let [s# ~routes]
     (assert (map? s#))
-    (binding [*stub-routes* s#
-              *call-counts* (atom {})
-              *expected-counts* (atom {})]
+    (binding [shared/*stub-routes* s#
+              shared/*call-counts* (atom {})
+              shared/*expected-counts* (atom {})]
       (try
         (let [result# (do ~@body)]
-          (validate-all-call-counts)
+          (shared/validate-all-call-counts)
           result#)
         (finally
-          (reset! *call-counts* {})
-          (reset! *expected-counts* {}))))))
-
-(defmacro with-global-http-stub-in-isolation
-  [routes & body]
-  `(with-redefs [*in-isolation* true]
-     (with-global-http-stub ~routes ~@body)))
+          (reset! shared/*call-counts* {})
+          (reset! shared/*expected-counts* {}))))))
 
 (defmacro with-global-http-stub
   [routes & body]
   `(let [s# ~routes]
      (assert (map? s#))
-     (with-redefs [*stub-routes* s#
-                   *call-counts* (atom {})
-                   *expected-counts* (atom {})]
+     (with-redefs [shared/*stub-routes* s#
+                   shared/*call-counts* (atom {})
+                   shared/*expected-counts* (atom {})]
        (try
          (let [result# (do ~@body)]
-           (validate-all-call-counts)
+           (shared/validate-all-call-counts)
            result#)
          (finally
-           (reset! *call-counts* {})
-           (reset! *expected-counts* {}))))))
+           (reset! shared/*call-counts* {})
+           (reset! shared/*expected-counts* {}))))))
+
+(defmacro with-global-http-stub-in-isolation
+  [routes & body]
+  `(with-redefs [shared/*in-isolation* true]
+     (with-global-http-stub ~routes ~@body)))
 
 (defn- potential-uris-for [request-map]
-  (defaults-or-value #{"/" "" nil} (:uri request-map)))
+  (shared/defaults-or-value #{"/" "" nil} (:uri request-map)))
 
 (defprotocol RouteMatcher
   (matches [address method request]))
@@ -99,14 +94,14 @@
   Pattern
   (matches [address method request]
     (let [request-method (:request-method request)
-          address-strings (map address-string-for (potential-alternatives-to request potential-uris-for))]
+          address-strings (map shared/address-string-for (shared/potential-alternatives-to request potential-uris-for))]
       (and (contains? (set (distinct [:any request-method])) method)
            (some #(re-matches address %) address-strings))))
   Map
   (matches [address method request]
     (let [{expected-query-params :query-params} address]
       (and (or (nil? expected-query-params)
-               (query-params-match? expected-query-params request))
+               (shared/query-params-match? expected-query-params request))
            (let [request (cond-> request expected-query-params (dissoc :query-string))]
              (matches (:address address) method request))))))
 
@@ -116,14 +111,14 @@
       ;; Handler is a function with times metadata
       (and (fn? handler) (:times (meta handler)))
       (do
-        (swap! *expected-counts* assoc route-key (:times (meta handler)))
+        (swap! shared/*expected-counts* assoc route-key (:times (meta handler)))
         [method address {:handler handler}])
 
       ;; Handler is a map with :handler and :times
       (and (map? handler) (:handler handler))
       (do
         (when-let [times (:times handler)]
-          (swap! *expected-counts* assoc route-key times))
+          (swap! shared/*expected-counts* assoc route-key times))
         [method address {:handler (:handler handler)}])
 
       ;; Handler is a direct function
@@ -152,7 +147,7 @@
 
 (defn- get-matching-route
   [request]
-  (->> *stub-routes*
+  (->> shared/*stub-routes*
        flatten-routes
        (filter #(matches (:address %) (:method %) request))
        first))
@@ -162,7 +157,7 @@
   (let [route-handler (:handler route)
         handler-fn (if (map? route-handler) (:handler route-handler) route-handler)
         route-key (str (:address route) (:method route))
-        _ (swap! *call-counts* update route-key (fnil inc 0))
+        _ (swap! shared/*call-counts* update route-key (fnil inc 0))
         response (merge {:status 200 :body ""}
                        (handler-fn (unwrap-body request)))]
     (assoc response :body (body-bytes (:body response)))))
@@ -182,7 +177,7 @@
        (try (respond (handle-request-for-route request matching-route))
             (catch Exception e (raise e)))
        nil)
-     (if *in-isolation*
+     (if shared/*in-isolation*
        (try (throw-no-stub-route-exception request)
             (catch Exception e
               (raise e)
@@ -191,7 +186,7 @@
   ([origfn request]
    (if-let [matching-route (get-matching-route request)]
      (handle-request-for-route request matching-route)
-     (if *in-isolation*
+     (if shared/*in-isolation*
        (throw-no-stub-route-exception request)
        (origfn request)))))
 

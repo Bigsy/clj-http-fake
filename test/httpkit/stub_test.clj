@@ -172,3 +172,41 @@
                     (is (= "Any" body))
                     (deliver p2 :done)))
         [@p1 @p2]))))
+
+(deftest test-global-http-stub-in-isolation
+  (testing "global stub in isolation mode throws exception for unmatched routes"
+    (let [p (promise)]
+      (try
+        (with-global-http-stub-in-isolation {"http://example.com" {:status 200}}
+          (http/get "http://different.com" {}
+                   (fn [_] (deliver p :unexpected))))
+        (catch Exception e
+          (is (re-find #"No matching stub route" (.getMessage e)))
+          (deliver p :done)))
+      @p))
+
+  (testing "global stub in isolation mode matches routes and returns response"
+    (let [p (promise)]
+      (with-global-http-stub-in-isolation {"http://example.com" {:status 200 :body "success"}}
+        (http/get "http://example.com" {}
+                 (fn [{:keys [status body]}]
+                   (is (= 200 status))
+                   (is (= "success" body))
+                   (deliver p :done))))
+      @p))
+
+  (testing "global stub in isolation mode preserves dynamic bindings across multiple calls"
+    (let [p1 (promise)
+          p2 (promise)]
+      (with-global-http-stub-in-isolation {"http://example.com" {:status 200 :body "first"}}
+        (http/get "http://example.com" {}
+                 (fn [{:keys [body]}]
+                   (is (= "first" body))
+                   (deliver p1 :done)))
+        (try
+          (http/get "http://different.com" {}
+                   (fn [_] (deliver p2 :unexpected)))
+          (catch Exception e
+            (is (re-find #"No matching stub route" (.getMessage e)))
+            (deliver p2 :done))))
+      [@p1 @p2])))

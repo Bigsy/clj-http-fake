@@ -1,15 +1,10 @@
 (ns httpkit.stub
-  (:import [java.util.regex Pattern]
-           [java.net URLEncoder URLDecoder])
+  (:import (clojure.lang PersistentArrayMap PersistentVector)
+           [java.util.regex Pattern])
   (:require [org.httpkit.client :as http]
             [ring.util.codec :as ring-codec]
-            [robert.hooke :refer [add-hook]]
             [clojure.math.combinatorics :refer :all]
-            [stub.shared :refer [*stub-routes* *in-isolation* *call-counts* *expected-counts*
-                               validate-all-call-counts normalize-path defaults-or-value
-                               query-params-match? parse-url potential-server-ports-for
-                               potential-schemes-for potential-query-strings-for
-                               potential-alternatives-to address-string-for]]
+            [stub.shared :as shared]
             [clojure.string :as str]))
 
 (defprotocol RouteMatcher
@@ -19,18 +14,18 @@
   (let [uri (:uri request-map)]
     (if (str/blank? uri)
       ["/" "" nil]
-      [(normalize-path uri) (str/replace uri #"/+$" "")])))
+      [(shared/normalize-path uri) (str/replace uri #"/+$" "")])))
 
 (defn- matches-url [url request]
-  (let [parsed-url (if (string? url) (parse-url url) url)
+  (let [parsed-url (if (string? url) (shared/parse-url url) url)
         req-map (if (:query-params request)
-                 (assoc (parse-url (:url request))
+                 (assoc (shared/parse-url (:url request))
                         :query-string (ring-codec/form-encode (:query-params request)))
-                 (parse-url (:url request)))
-        address-strings (map address-string-for (potential-alternatives-to req-map potential-uris-for))]
+                 (shared/parse-url (:url request)))
+        address-strings (map shared/address-string-for (shared/potential-alternatives-to req-map potential-uris-for))]
     (cond
       (instance? Pattern url) (some #(re-matches url %) address-strings)
-      :else (some #(= (address-string-for parsed-url) %) address-strings))))
+      :else (some #(= (shared/address-string-for parsed-url) %) address-strings))))
 
 (extend-protocol RouteMatcher
   String
@@ -41,14 +36,14 @@
   (matches [address _ request]
     (matches-url address request))
 
-  clojure.lang.PersistentArrayMap
+  PersistentArrayMap
   (matches [address _ request]
     (let [expected-query-params (:query-params address)]
       (and (matches-url (:url address) (dissoc request :query-params))
            (or (nil? expected-query-params)
-               (query-params-match? expected-query-params request)))))
+               (shared/query-params-match? expected-query-params request)))))
             
-  clojure.lang.PersistentVector
+  PersistentVector
   (matches [address _ request]
     (let [[req-method url] address]
       (and (or (= req-method :any)
@@ -83,10 +78,10 @@
 (defn wrap-request-with-stub [client]
   (fn [req callback]
     (let [request (normalize-request-map req)
-          matching-route (find-matching-route *stub-routes* request)
+          matching-route (find-matching-route shared/*stub-routes* request)
           route-key (first matching-route)]
       (when route-key
-        (swap! *call-counts* update-in [(if (vector? route-key)
+        (swap! shared/*call-counts* update-in [(if (vector? route-key)
                                         route-key
                                         [(:url request) (:method request)])] 
                                       (fnil inc 0)))
@@ -95,7 +90,7 @@
           (let [[_ response] matching-route
                 resp (create-response response request)]
             (deliver response-promise resp))
-          (if *in-isolation*
+          (if shared/*in-isolation*
             (throw (Exception. (str "No matching stub route found for " (:method request) " "
                                   (:url request))))
             (client req #(deliver response-promise %))))
@@ -108,21 +103,46 @@
   [routes & body]
   `(let [s# ~routes]
      (assert (map? s#))
-     (binding [*stub-routes* s#
-               *call-counts* (atom {})
-               *expected-counts* (atom {})]
+     (binding [shared/*stub-routes* s#
+               shared/*call-counts* (atom {})
+               shared/*expected-counts* (atom {})]
        (with-redefs [http/request (wrap-request-with-stub http/request)]
          (try
            (let [result# (do ~@body)]
-             (validate-all-call-counts)
+             (shared/validate-all-call-counts)
              result#)
            (finally
-             (reset! *call-counts* {})
-             (reset! *expected-counts* {})))))))
+             (reset! shared/*call-counts* {})
+             (reset! shared/*expected-counts* {})))))))
 
 (defmacro with-http-stub-in-isolation
   "Makes all wrapped http-kit requests first match against given routes.
   If no route matches, an exception is thrown."
   [routes & body]
-  `(binding [*in-isolation* true]
+  `(binding [shared/*in-isolation* true]
      (with-http-stub ~routes ~@body)))
+
+(defmacro with-global-http-stub
+  "Makes all wrapped http-kit requests first match against given routes.
+  The actual HTTP request will be sent only if no matches are found."
+  [routes & body]
+  `(let [s# ~routes]
+     (assert (map? s#))
+     (with-redefs [shared/*stub-routes* s#
+                   shared/*call-counts* (atom {})
+                   shared/*expected-counts* (atom {})
+                   http/request (wrap-request-with-stub http/request)]
+       (try
+         (let [result# (do ~@body)]
+           (shared/validate-all-call-counts)
+           result#)
+         (finally
+           (reset! shared/*call-counts* {})
+           (reset! shared/*expected-counts* {}))))))
+
+(defmacro with-global-http-stub-in-isolation
+  "Makes all wrapped http-kit requests first match against given routes.
+  If no route matches, an exception is thrown."
+  [routes & body]
+  `(with-redefs [shared/*in-isolation* true]
+     (with-global-http-stub ~routes ~@body)))

@@ -310,3 +310,20 @@
             (is (instance? Exception (first @val)))
             (is (re-matches #"(?is)No matching stub route .*"
                             (.getMessage (first @val))))))))))
+
+(deftest with-global-http-stub-in-isolation-test
+  (testing "global stub in isolation mode throws exception for unmatched routes"
+    (is (thrown-with-msg? Exception #"No matching stub route.*"
+          (with-global-http-stub-in-isolation {"http://example.com" (constantly {:status 200})}
+            (http/get "http://different.com")))))
+  
+  (testing "global stub in isolation mode matches routes and returns response"
+    (is (= "success"
+           (with-global-http-stub-in-isolation {"http://example.com" (constantly {:status 200 :body "success"})}
+             (:body (http/get "http://example.com"))))))
+  
+  (testing "global stub in isolation mode preserves dynamic bindings across multiple calls"
+    (with-global-http-stub-in-isolation {"http://example.com" (constantly {:status 200 :body "first"})}
+      (is (= "first" (:body (http/get "http://example.com"))))
+      (is (thrown-with-msg? Exception #"No matching stub route.*"
+            (http/get "http://different.com"))))))
