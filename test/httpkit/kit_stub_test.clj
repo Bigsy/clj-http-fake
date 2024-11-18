@@ -150,3 +150,50 @@
             (is (re-find #"No matching stub route found" (.getMessage e)))
             (deliver p2 :done))))
       [@p1 @p2])))
+
+(deftest test-global-http-stub
+  (testing "matches routes correctly with global stub"
+    (let [p (promise)]
+      (with-global-http-stub
+        {"http://example.com/matched" 
+         {:get (fn [_] {:status 200 :body "OK"})}}
+        (http/get "http://example.com/matched" {}
+                 (fn [{:keys [status body]}]
+                   (is (= 200 status))
+                   (is (= "OK" body))
+                   (deliver p :done))))
+      (is (= :done @p))))
+
+  (testing "preserves global stub across multiple calls"
+    (let [p1 (promise)
+          p2 (promise)]
+      (with-global-http-stub
+        {"http://example.com" 
+         {:get (fn [_] {:status 200 :body "First"})
+          :post (fn [_] {:status 201 :body "Second"})}}
+        (http/get "http://example.com" {}
+                 (fn [{:keys [status body]}]
+                   (is (= 200 status))
+                   (is (= "First" body))
+                   (deliver p1 :done)))
+        (http/post "http://example.com" {}
+                  (fn [{:keys [status body]}]
+                    (is (= 201 status))
+                    (is (= "Second" body))
+                    (deliver p2 :done))))
+      (is (= [:done :done] [@p1 @p2]))))
+
+  (testing "allows real HTTP requests for unmatched routes"
+    (let [p (promise)]
+      (with-global-http-stub
+        {"http://example.com/matched" 
+         {:get (fn [_] {:status 200 :body "OK"})}}
+        ;; Using a mock for the real HTTP request since we don't want actual network calls in tests
+        (with-redefs [org.httpkit.client/request
+                     (fn [_ cb] (cb {:status 404 :body "Not Found"}))]
+          (http/get "http://example.com/unmatched" {}
+                   (fn [{:keys [status body]}]
+                     (is (= 404 status))
+                     (is (= "Not Found" body))
+                     (deliver p :done)))))
+      (is (= :done @p)))))
