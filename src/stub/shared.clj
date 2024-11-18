@@ -22,19 +22,37 @@
   [defaults value]
   (if (contains? defaults value) (reverse (vec defaults)) (vector value)))
 
+(defn normalize-query-params
+  "Normalizes query parameters to a consistent format.
+   Handles both string and keyword keys, and converts all values to strings."
+  [params]
+  (when params
+    (into {} (for [[k v] params]
+               [(name k) (str v)]))))
+
+(defn parse-query-string
+  "Parses a query string into a map of normalized parameters.
+   Returns empty map for nil or empty query string."
+  [query-string]
+  (if (str/blank? query-string)
+    {}
+    (normalize-query-params (ring-codec/form-decode query-string))))
+
+(defn get-request-query-params
+  "Extracts and normalizes query parameters from a request.
+   Handles both :query-params and :query-string formats."
+  [request]
+  (or (some-> request :query-params normalize-query-params)
+      (some-> request :query-string parse-query-string)
+      {}))
+
 (defn query-params-match?
   "Checks if the actual query parameters in a request match the expected ones.
    Works with both query-string and query-params formats, and handles both
    httpkit and clj-http parameter styles."
   [expected-query-params request]
-  (let [actual-query-params (or (when-let [params (:query-params request)]
-                                 (if (map? params) 
-                                   (into {} (for [[k v] params] [(name k) (str v)]))
-                                   (into {} (for [[k v] params] [(name k) (str v)]))))
-                               (some-> request :query-string ring-codec/form-decode)
-                               {})
-        expected-query-params (into {} (for [[k v] expected-query-params] 
-                                       [(name k) (str v)]))]
+  (let [actual-query-params (get-request-query-params request)
+        expected-query-params (normalize-query-params expected-query-params)]
     (and (= (count expected-query-params) (count actual-query-params))
          (every? (fn [[k v]]
                   (= v (get actual-query-params k)))
@@ -131,6 +149,19 @@
                (when-not (nil? server-port) (str ":" server-port))
                (when-not (nil? uri) uri)
                (when-not (nil? query-str) (str "?" query-str))])))
+
+(defn get-request-method
+  "Gets the request method from either http-kit (:method) or clj-http (:request-method) style requests"
+  [request]
+  (or (:method request)
+      (:request-method request)))
+
+(defn methods-match?
+  "Checks if a request method matches an expected method.
+   Handles :any as a wildcard method."
+  [expected-method request]
+  (let [request-method (get-request-method request)]
+    (contains? (set (distinct [:any request-method])) expected-method)))
 
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]

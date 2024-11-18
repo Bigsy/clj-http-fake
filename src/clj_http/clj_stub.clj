@@ -93,9 +93,8 @@
 
   Pattern
   (matches [address method request]
-    (let [request-method (:request-method request)
-          address-strings (map shared/address-string-for (shared/potential-alternatives-to request potential-uris-for))]
-      (and (contains? (set (distinct [:any request-method])) method)
+    (let [address-strings (map shared/address-string-for (shared/potential-alternatives-to request potential-uris-for))]
+      (and (shared/methods-match? method request)
            (some #(re-matches address %) address-strings))))
 
   Map

@@ -39,7 +39,7 @@
                           (get handlers :any))
                 times (or (get-in handlers [:times method])  ; Get method-specific times
                          (:times handlers))]                 ; Or global times
-          :when handler]
+          :when (and handler (shared/methods-match? method request))]
       [url (fn [req] 
             ;; Set up expected counts if :times is specified
             (when times
