@@ -81,11 +81,6 @@
     obj
     (utf8-bytes obj)))
 
-(defn- unwrap-body [request]
-  (if (instance? HttpEntity (:body request))
-    (assoc request :body (.getContent ^HttpEntity (:body request)))
-    request))
-
 (extend-protocol RouteMatcher
   String
   (matches [address method request]
@@ -158,7 +153,7 @@
         handler-fn (if (map? route-handler) (:handler route-handler) route-handler)
         route-key (str (:address route) (:method route))
         _ (swap! shared/*call-counts* update route-key (fnil inc 0))
-        response (shared/create-response handler-fn (unwrap-body request))]
+        response (shared/create-response handler-fn (shared/normalize-request request))]
     (assoc response :body (body-bytes (:body response)))))
 
 (defn- throw-no-stub-route-exception

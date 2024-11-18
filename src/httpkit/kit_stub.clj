@@ -24,12 +24,6 @@
       (= (shared/normalize-url-for-matching (shared/address-string-for parsed-url))
          req-str))))
 
-(defn normalize-request-map [request]
-  (let [req (if (string? request) 
-              {:url request} 
-              request)]
-    (merge {:method :get} req)))
-
 (defn- find-matching-route [routes request]
   (first
     (for [[url handlers] routes
@@ -51,7 +45,7 @@
 
 (defn wrap-request-with-stub [client]
   (fn [req callback]
-    (let [request (normalize-request-map req)
+    (let [request (shared/normalize-request req)
           matching-route (find-matching-route shared/*stub-routes* request)
           [url response] matching-route]
       (when url

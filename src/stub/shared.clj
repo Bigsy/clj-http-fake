@@ -1,4 +1,6 @@
 (ns stub.shared
+  (:import [java.util.regex Pattern]
+           [org.apache.http HttpEntity])
   (:require [clojure.math.combinatorics :refer [cartesian-product permutations]]
             [clojure.string :as str]
             [ring.util.codec :as ring-codec]))
@@ -174,6 +176,31 @@
          (if (fn? response)
            (response request)
            response)))
+
+(defn normalize-request
+  "Normalizes a request map to a consistent format.
+   - Converts string URLs to request maps
+   - Sets default method to :get
+   - Handles HttpEntity bodies
+   - Ensures consistent method key (:method or :request-method)"
+  [request]
+  (let [req (cond
+              ;; Handle string URLs
+              (string? request) 
+              {:url request}
+              
+              ;; Handle HttpEntity bodies
+              (and (:body request) (instance? HttpEntity (:body request)))
+              (assoc request :body (.getContent ^HttpEntity (:body request)))
+              
+              :else request)
+        ;; Ensure we have a method (default to :get)
+        req (merge {:method :get} req)
+        ;; Normalize method keys
+        method (or (:method req) (:request-method req))]
+    (assoc req 
+           :method method
+           :request-method method)))
 
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
