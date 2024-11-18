@@ -82,6 +82,32 @@
                     (deliver p2 :done)))
         [@p1 @p2]))))
 
+(deftest test-http-stub-in-isolation
+  (testing "throws exception for unmatched routes in isolation mode"
+    (let [p (promise)]
+      (try
+        (with-http-stub-in-isolation
+          {"http://example.com/matched" 
+           {:get (fn [_] {:status 200 :body "OK"})}}
+          (http/get "http://example.com/unmatched" {}
+                   (fn [response]
+                     (deliver p response)))
+          (is false "Should have thrown an exception"))
+        (catch Exception e
+          (is (re-find #"No matching stub route" (.getMessage e)))))))
+  
+  (testing "matches routes correctly in isolation mode"
+    (let [p (promise)]
+      (with-http-stub-in-isolation
+        {"http://example.com/matched" 
+         {:get (fn [_] {:status 200 :body "OK"})}}
+        (http/get "http://example.com/matched" {}
+                 (fn [{:keys [status body]}]
+                   (is (= 200 status))
+                   (is (= "OK" body))
+                   (deliver p :done))))
+      (is (= :done @p)))))
+
 (deftest test-global-http-stub-in-isolation
   (testing "global stub in isolation mode throws exception for unmatched routes"
     (let [p (promise)]
