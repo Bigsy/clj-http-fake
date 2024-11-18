@@ -11,20 +11,17 @@
   (let [uri (:uri request-map)]
     (if (str/blank? uri)
       ["/" "" nil]
-      [(shared/normalize-path uri) (str/replace uri #"/+$" "")])))
-
-(defn- normalize-url-for-matching [url]
-  (str/replace url #"/+$" ""))
+      [(shared/normalize-path uri) (shared/normalize-url-for-matching uri)])))
 
 (defn- matches-url [url request]
   (let [parsed-url (if (string? url) (shared/parse-url url) url)
         req-map (shared/parse-url (:url request))
-        req-str (normalize-url-for-matching (shared/address-string-for req-map))]
+        req-str (shared/normalize-url-for-matching (shared/address-string-for req-map))]
     (cond
       (instance? Pattern url) 
       (re-matches url req-str)
       :else 
-      (= (normalize-url-for-matching (shared/address-string-for parsed-url))
+      (= (shared/normalize-url-for-matching (shared/address-string-for parsed-url))
          req-str))))
 
 (defn normalize-request-map [request]

@@ -109,6 +109,11 @@
         combinations (cartesian-product query-strings schemes server-ports uris)]
     (map #(merge request (zipmap [:query-string :scheme :server-port :uri] %)) combinations)))
 
+(defn normalize-url-for-matching
+  "Normalizes a URL string by removing trailing slashes for consistent matching"
+  [url]
+  (str/replace url #"/+$" ""))
+
 (defn address-string-for
   "Converts a request map into a URL string.
    Handles both keyword (:http) and string ('http') schemes.

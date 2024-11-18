@@ -97,6 +97,7 @@
           address-strings (map shared/address-string-for (shared/potential-alternatives-to request potential-uris-for))]
       (and (contains? (set (distinct [:any request-method])) method)
            (some #(re-matches address %) address-strings))))
+
   Map
   (matches [address method request]
     (let [{expected-query-params :query-params} address]
