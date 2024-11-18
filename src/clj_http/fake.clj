@@ -5,7 +5,8 @@
            [org.apache.http HttpEntity])
   (:require [clj-http.core]
             [ring.util.codec :as ring-codec]
-            [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* validate-all-call-counts]])
+            [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
+                               validate-all-call-counts defaults-or-value]])
   (:use [robert.hooke]
         [clojure.math.combinatorics]
         [clojure.string :only [join split]]))
@@ -53,9 +54,6 @@
          (finally
            (reset! *call-counts* {})
            (reset! *expected-counts* {}))))))
-
-(defn- defaults-or-value [defaults value]
-  (if (contains? defaults value) (reverse (vec defaults)) (vector value)))
 
 (defn- potential-server-ports-for [request-map]
   (defaults-or-value #{80 nil} (:server-port request-map)))

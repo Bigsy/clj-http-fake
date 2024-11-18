@@ -6,14 +6,11 @@
             [robert.hooke :refer [add-hook]]
             [clojure.math.combinatorics :refer :all]
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
-                               validate-all-call-counts normalize-path]]
+                               validate-all-call-counts normalize-path defaults-or-value]]
             [clojure.string :as str]))
 
 (defprotocol RouteMatcher
   (matches [address method request]))
-
-(defn- defaults-or-value [defaults value]
-  (if (contains? defaults value) (reverse (vec defaults)) (vector value)))
 
 (defn- parse-url [url]
   (let [[url query] (str/split url #"\?" 2)

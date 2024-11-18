@@ -15,6 +15,13 @@
     (str/ends-with? path "/") path
     :else (str path "/")))
 
+(defn defaults-or-value
+  "Given a set of default values and a value, returns either:
+   - a vector of all default values (reversed) if the value is in the defaults
+   - a vector containing just the value if it's not in the defaults"
+  [defaults value]
+  (if (contains? defaults value) (reverse (vec defaults)) (vector value)))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]
