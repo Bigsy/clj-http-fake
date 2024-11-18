@@ -77,6 +77,17 @@
         scheme-val (if (keyword? scheme) :http "http")]
     (defaults-or-value #{scheme-val nil} scheme)))
 
+(defn potential-query-strings-for
+  "Given a request map, returns a vector of potential query strings.
+   If the request has no query string or an empty one, returns ['', nil].
+   If it has a query string, returns all possible permutations of its parameters."
+  [request-map]
+  (let [queries (defaults-or-value #{"" nil} (:query-string request-map))
+        query-supplied (= (count queries) 1)]
+    (if query-supplied
+      (map (partial str/join "&") (permutations (str/split (first queries) #"&|;")))
+      queries)))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]
