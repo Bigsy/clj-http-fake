@@ -6,7 +6,7 @@
   (:require [clj-http.core]
             [ring.util.codec :as ring-codec]
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
-                               validate-all-call-counts defaults-or-value]])
+                               validate-all-call-counts defaults-or-value query-params-match?]])
   (:use [robert.hooke]
         [clojure.math.combinatorics]
         [clojure.string :only [join split]]))
@@ -95,13 +95,27 @@
   [string]
   (some-> string str (URLEncoder/encode "UTF-8") (.replace "+" "%20")))
 
-(defn- query-params-match?
-  [expected-query-params request]
-  (let [actual-query-params (or (some-> request :query-string ring-codec/form-decode) {})]
-    (and (= (count expected-query-params) (count actual-query-params))
-         (every? (fn [[k v]]
-                   (= (str v) (get actual-query-params (name k))))
-                 expected-query-params))))
+(defn utf8-bytes
+    "Returns the UTF-8 bytes corresponding to the given string."
+    [^String s]
+    (.getBytes s "UTF-8"))
+
+(defn- byte-array?
+  "Is `obj` a java byte array?"
+  [obj]
+  (instance? (Class/forName "[B") obj))
+
+(defn body-bytes
+  "If `obj` is a byte-array, return it, otherwise use `utf8-bytes`."
+  [obj]
+  (if (byte-array? obj)
+    obj
+    (utf8-bytes obj)))
+
+(defn- unwrap-body [request]
+  (if (instance? HttpEntity (:body request))
+    (assoc request :body (.getContent ^HttpEntity (:body request)))
+    request))
 
 (extend-protocol RouteMatcher
   String
@@ -161,29 +175,6 @@
          []
          routes)]
     (remove nil? (map #(zipmap [:method :address :handler] %) normalised-routes))))
-
-(defn utf8-bytes
-    "Returns the UTF-8 bytes corresponding to the given string."
-    [^String s]
-    (.getBytes s "UTF-8"))
-
-(let [byte-array-type (Class/forName "[B")]
-  (defn- byte-array?
-    "Is `obj` a java byte array?"
-    [obj]
-    (instance? byte-array-type obj)))
-
-(defn body-bytes
-  "If `obj` is a byte-array, return it, otherwise use `utf8-bytes`."
-  [obj]
-  (if (byte-array? obj)
-    obj
-    (utf8-bytes obj)))
-
-(defn- unwrap-body [request]
-  (if (instance? HttpEntity (:body request))
-    (assoc request :body (.getContent ^HttpEntity (:body request)))
-    request))
 
 (defn- get-matching-route
   [request]

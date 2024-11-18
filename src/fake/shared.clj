@@ -22,6 +22,24 @@
   [defaults value]
   (if (contains? defaults value) (reverse (vec defaults)) (vector value)))
 
+(defn query-params-match?
+  "Checks if the actual query parameters in a request match the expected ones.
+   Works with both query-string and query-params formats, and handles both
+   httpkit and clj-http parameter styles."
+  [expected-query-params request]
+  (let [actual-query-params (or (when-let [params (:query-params request)]
+                                 (if (map? params) 
+                                   (into {} (for [[k v] params] [(name k) (str v)]))
+                                   (into {} (for [[k v] params] [(name k) (str v)]))))
+                               (some-> request :query-string ring-codec/form-decode)
+                               {})
+        expected-query-params (into {} (for [[k v] expected-query-params] 
+                                       [(name k) (str v)]))]
+    (and (= (count expected-query-params) (count actual-query-params))
+         (every? (fn [[k v]]
+                  (= v (get actual-query-params k)))
+                expected-query-params))))
+
 (defn validate-all-call-counts []
   (doseq [[route-key expected-count] @*expected-counts*]
     (let [actual-count (get @*call-counts* route-key 0)]

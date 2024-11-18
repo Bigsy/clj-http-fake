@@ -6,7 +6,8 @@
             [robert.hooke :refer [add-hook]]
             [clojure.math.combinatorics :refer :all]
             [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* 
-                               validate-all-call-counts normalize-path defaults-or-value]]
+                               validate-all-call-counts normalize-path defaults-or-value
+                               query-params-match?]]
             [clojure.string :as str]))
 
 (defprotocol RouteMatcher
@@ -64,13 +65,6 @@
                (if (nil? server-port) "" (str ":" server-port))
                (if (nil? uri) "" uri)
                (if (nil? query-string) "" (str "?" query-string))])))
-
-(defn- query-params-match? [expected-query-params request]
-  (let [actual-query-params (or (:query-params request) {})]
-    (and (= (count expected-query-params) (count actual-query-params))
-         (every? (fn [[k v]]
-                  (= (str v) (str (get actual-query-params k))))
-                expected-query-params))))
 
 (defn- matches-url [url request]
   (let [parsed-url (if (string? url) (parse-url url) url)
