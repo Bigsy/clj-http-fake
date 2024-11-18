@@ -327,3 +327,16 @@
       (is (= "first" (:body (http/get "http://example.com"))))
       (is (thrown-with-msg? Exception #"No matching stub route.*"
             (http/get "http://different.com"))))))
+
+(deftest test-global-http-stub-in-isolation
+  (testing "throws exception for unmatched routes in isolation mode"
+    (is (thrown? Exception 
+          (with-global-http-stub-in-isolation
+            {"http://example.com/matched" (fn [_] {:status 200 :body "OK"})}
+            (http/get "http://example.com/unmatched")))))
+  
+  (testing "matches routes correctly in isolation mode"
+    (is (= "OK"
+           (:body (with-global-http-stub-in-isolation
+                   {"http://example.com/matched" (fn [_] {:status 200 :body "OK"})}
+                   (http/get "http://example.com/matched")))))))
