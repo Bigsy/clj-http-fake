@@ -4,22 +4,11 @@
            [java.net URLEncoder URLDecoder]
            [org.apache.http HttpEntity])
   (:require [clj-http.core]
-            [ring.util.codec :as ring-codec])
+            [ring.util.codec :as ring-codec]
+            [fake.shared :refer [*fake-routes* *in-isolation* *call-counts* *expected-counts* validate-all-call-counts]])
   (:use [robert.hooke]
         [clojure.math.combinatorics]
         [clojure.string :only [join split]]))
-
-(def ^:dynamic *fake-routes* {})
-(def ^:dynamic *in-isolation* false)
-(def ^:dynamic *call-counts* (atom {}))
-(def ^:dynamic *expected-counts* (atom {}))
-
-(defn validate-all-call-counts []
-  (doseq [[route-key expected-count] @*expected-counts*]
-    (let [actual-count (get @*call-counts* route-key 0)]
-      (when (not= actual-count expected-count)
-        (throw (Exception. (format "Expected route '%s' to be called %d times but was called %d times"
-                                 route-key expected-count actual-count)))))))
 
 (defmacro with-fake-routes-in-isolation
   "Makes all wrapped clj-http requests first match against given routes.

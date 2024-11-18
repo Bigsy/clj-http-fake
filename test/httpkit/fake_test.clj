@@ -1,6 +1,7 @@
 (ns httpkit.fake-test
   (:require [clojure.test :refer :all]
             [httpkit.fake :refer :all]
+            [fake.shared :refer [*call-counts*]]
             [org.httpkit.client :as http]))
 
 (deftest test-simple-get
